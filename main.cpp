@@ -18,14 +18,24 @@ public:
         return edges.size();
     };
 
-    float getEdge(int u, int v) {
-        // TODO: implement
+    float getEdgeCost(int u, int v) {
+        // since this is an undirected graph we check for an edge in both {u, v} or {v, u} directions
+        std::map<std::pair<int, int>, float>::iterator edge;
+
         // check for u,v
-        //   return edges[{u,v}]
+        edge = edges.find({u, v});
+        if (edge != edges.end()) {
+            return edge->second;
+        }
+
         // else check for v,u
-        //   return edges[{v,u}]
+        edge = edges.find({v, u});
+        if (edge != edges.end()) {
+            return edge->second;
+        }
+
         // else return +inf
-        return 0;
+        return std::numeric_limits<float>::max();;
     }
 
 private:
