@@ -6,7 +6,7 @@
 
 class UndirectedGraph {
 public:
-    void addEdge(int u, int v, double c) {
+    void addEdge(int u, int v, float c) {
         vertices.insert(u);
         vertices.insert(v);
         edges[{u, v}] = c;
@@ -20,9 +20,9 @@ public:
         return edges.size();
     };
 
-    double getEdgeCost(int u, int v) {
+    float getEdgeCost(int u, int v) {
         // since this is an undirected graph we check for an edge in both {u, v} or {v, u} directions
-        std::map<std::pair<int, int>, double>::iterator edge;
+        std::map<std::pair<int, int>, float>::iterator edge;
 
         // check for u,v
         edge = edges.find({u, v});
@@ -37,12 +37,12 @@ public:
         }
 
         // else return +inf
-        return std::numeric_limits<double>::max();;
+        return std::numeric_limits<float>::max();;
     }
 
 private:
     std::unordered_set<int> vertices;
-    std::map<std::pair<int, int>, double> edges;
+    std::map<std::pair<int, int>, float> edges;
 };
 
 /** Binary representation of a subset S of vector space V = {1, 2, ..., n} of size n where inclusion of element i is
@@ -61,7 +61,7 @@ int removeElementFromSet(int element, int set) {
 /** Binary representation of a subset S of vector space V = {1, 2, ..., n} of size n where inclusion of element i is
  * represented by the bit at the i'th position. */
 std::unordered_set<int> generateAllSubsetsOfSize(int vectorSpaceSize, int subsetSize) {
-    // memoize this
+    // TODO: memoize this
     std::unordered_set<int> sets;
 
     if (subsetSize == 0) {
@@ -103,22 +103,24 @@ std::unordered_set<int> generateAllSubsetsIncludingFirstElementOfSize(int vector
 }
 
 /** Returns the shortest path distance that visits every node once. */
-double BellmanHeldKarpTsp(UndirectedGraph g) {
-    int n = g.getNumVertices();
-    int V = (int) pow(2, n - 1) - 1;
+float BellmanHeldKarpTsp(UndirectedGraph g) {
+    // note: index vertices from 0 to (n - 1)
 
-    // index vertices from 0 to (n - 1)
+    int n = g.getNumVertices();
+    int V = (int) pow(2, n) - 1; // vector space (set including every element)
+
     // sub-problems (1 e S, |S| >= 2, j e V - {0})
     // (only sub-problems with j e S are ever used)
-    double A[V][n - 1];
+    float A[V + 1][n - 1];
 
     // base cases (|S| = 2)
     for (int j = 1; j < n; j++) {
-        A[1 | (1 << j)][j] = g.getEdgeCost(0, j);
+        int S = 1 | (1 << j);
+        A[S][j] = g.getEdgeCost(0, j);
     }
 
     // systematically solve all sub-problems
-    for (int s = 3; s < n; s++) {
+    for (int s = 3; s <= n; s++) {
         // for S with |S| = s and 1 e S
         for (int S: generateAllSubsetsIncludingFirstElementOfSize(n, s)) {
             // for j e S - {1}
@@ -126,7 +128,7 @@ double BellmanHeldKarpTsp(UndirectedGraph g) {
                 // if j is in set S
                 if (isElementInSet(j, S)) {
                     // search for minPath from k (where k is in S - {j}, k != 1, j) to j
-                    double minPath = std::numeric_limits<double>::max();
+                    float minPath = std::numeric_limits<float>::max();
                     for (int k = 1; k < n; k++) {
                         if (k == j) {
                             continue;
@@ -143,11 +145,15 @@ double BellmanHeldKarpTsp(UndirectedGraph g) {
     }
 
     // compute optimal tour cost
-    double minCost = std::numeric_limits<double>::max();
+    float minCost = std::numeric_limits<float>::max();
     for (int j = 1; j < n; j++) {
         minCost = std::min(minCost, A[V][j] + g.getEdgeCost(j, 0));
     }
     return minCost;
+}
+
+float calculateEuclideanDistance(float x0, float y0, float x1, float y1) {
+    return std::sqrt(std::pow(x1 - x0, 2) + std::pow(y1 - y0, 2));
 }
 
 UndirectedGraph readGraph() {
@@ -155,23 +161,32 @@ UndirectedGraph readGraph() {
     UndirectedGraph g;
 
     // hardcoded values for testing
-    g.addEdge(0, 1, 1);
-    g.addEdge(1, 2, 5);
-    g.addEdge(2, 3, 2);
-    g.addEdge(3, 0, 7);
-    g.addEdge(1, 3, 3);
-    g.addEdge(0, 2, 4);
+//    g.addEdge(0, 1, 1);
+//    g.addEdge(1, 2, 5);
+//    g.addEdge(2, 3, 2);
+//    g.addEdge(3, 0, 7);
+//    g.addEdge(1, 3, 3);
+//    g.addEdge(0, 2, 4);
 
     std::ifstream input("data.txt");
 
     int numVertices;
     input >> numVertices;
 
-    double x, y;
+    // positions of vertices
+    std::pair<float, float> p[numVertices];
+    float x, y;
 
-    while (input.good()) {
+    for (int i = 0; i < numVertices; i++) {
         input >> x >> y;
-        printf( "%f, %f \n", x, y );
+        printf("%f, %f \n", x, y);
+        p[i] = {x, y};
+    }
+
+    for (int i = 0; i < numVertices; i++) {
+        for (int j = 0; j < numVertices; j++) {
+            g.addEdge(i, j, calculateEuclideanDistance(p[i].first, p[j].first, p[i].second, p[j].second));
+        }
     }
 
     return g;
@@ -182,7 +197,7 @@ int main() {
     std::cout << "Num vertices: " << g.getNumVertices() << std::endl;
     std::cout << "Num edges: " << g.getNumEdges() << std::endl;
 
-    double shortestPathLength = BellmanHeldKarpTsp(g);
+    float shortestPathLength = BellmanHeldKarpTsp(g);
     std::cout << "Shortest travelling salesman path length: " << shortestPathLength << " (" << (int) shortestPathLength
               << ")" << std::endl;
 
