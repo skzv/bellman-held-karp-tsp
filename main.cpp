@@ -189,7 +189,7 @@ float calculateEuclideanDistance(std::pair<float, float> p0, std::pair<float, fl
 UndirectedGraph readGraph() {
     UndirectedGraph g;
 
-    const bool TEST = true;
+    const bool TEST = false;
 
     if (TEST) {
         // hardcoded values for testing
